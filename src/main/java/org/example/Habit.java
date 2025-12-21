@@ -45,6 +45,19 @@ public class Habit {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Habit habit = (Habit) o;
+        return name.equals(habit.name) && difficulty == habit.difficulty;
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode() * 31 + difficulty.hashCode();
+    }
+
+    @Override
     public String toString() {
         return "Habit{name='" + name + "', difficulty=" + difficulty.getValue() + "}";
     }

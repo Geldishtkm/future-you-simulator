@@ -11,15 +11,13 @@ package org.example;
 public record XpTransaction(int amount, String reason) {
     /**
      * Creates a new XP transaction.
+     * Note: Zero amounts are allowed for cases where transactions are capped or invalidated.
      *
-     * @param amount the amount of XP (positive for gains, negative for losses)
+     * @param amount the amount of XP (positive for gains, negative for losses, zero for no change)
      * @param reason a description of why this XP change occurred
-     * @throws IllegalArgumentException if amount is zero
      */
     public XpTransaction {
-        if (amount == 0) {
-            throw new IllegalArgumentException("XP transaction amount cannot be zero");
-        }
+        // Zero amounts are now allowed for daily cap scenarios
     }
 
     /**
@@ -38,6 +36,15 @@ public record XpTransaction(int amount, String reason) {
      */
     public boolean isLoss() {
         return amount < 0;
+    }
+
+    /**
+     * Returns true if this transaction has no effect (zero amount).
+     *
+     * @return true if amount is zero
+     */
+    public boolean isNoOp() {
+        return amount == 0;
     }
 }
 
