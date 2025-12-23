@@ -1,6 +1,7 @@
 package org.example;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Example usage of the gamified habit and goal system with anti-cheat features.
@@ -10,6 +11,7 @@ import java.time.LocalDate;
  * - Anti-cheat validation (preventing duplicate rewards)
  * - Inactivity XP decay
  * - Long-term goals and daily goal progress
+ * - Analytics, streaks, trends, and burnout detection
  */
 public class Main {
     public static void main(String[] args) {
@@ -175,6 +177,104 @@ public class Main {
             int accumulated = goalService.getAccumulatedPoints(goal);
             System.out.printf("%s: %.1f%% complete (%d / %d points)%n",
                 goal.getTitle(), progress, accumulated, goal.getTotalProgressPoints());
+        }
+        System.out.println();
+
+        // ========== ANALYTICS & INSIGHTS ==========
+        System.out.println("=== ANALYTICS & INSIGHTS ===");
+        AnalyticsService analyticsService = new AnalyticsService();
+        LocalDate currentDate = day4;
+        List<Habit> allHabits = List.of(morningExercise, drinkWater, readBook, meditate, learnNewSkill);
+        List<Goal> allGoals = goalService.getAllGoals();
+
+        // Generate comprehensive analytics summary
+        AnalyticsService.AnalyticsSummary summary = analyticsService.generateSummary(
+            allHabits, allGoals, habitService, goalService, currentDate);
+
+        // 1. Habit Streaks
+        System.out.println("\n--- Habit Streaks ---");
+        for (Habit habit : allHabits) {
+            HabitStreak streak = summary.habitStreaks().get(habit);
+            if (streak != null) {
+                if (streak.hasActiveStreak()) {
+                    System.out.printf("  %s: 🔥 %d day streak (longest: %d days, started: %s)%n",
+                        habit.getName(), streak.currentStreak(), streak.longestStreak(), 
+                        streak.streakStartDate());
+                } else {
+                    System.out.printf("  %s: No active streak (longest: %d days)%n",
+                        habit.getName(), streak.longestStreak());
+                }
+            }
+        }
+
+        // 2. Goal Consistency
+        System.out.println("\n--- Goal Consistency ---");
+        for (Goal goal : allGoals) {
+            GoalConsistency consistency = summary.goalConsistency().get(goal);
+            if (consistency != null) {
+                System.out.printf("  %s: %.1f/100 consistency score%n",
+                    goal.getTitle(), consistency.consistencyScore());
+                System.out.printf("    - Active days: %d, Total notes: %d, Avg gap: %.1f days%n",
+                    consistency.activeDays(), consistency.totalNotes(), consistency.averageGapDays());
+            }
+        }
+
+        // 3. XP Trend Analysis
+        System.out.println("\n--- XP Trend Analysis (Last 14 Days) ---");
+        Trend trend = summary.xpTrend();
+        String trendEmoji = switch (trend) {
+            case IMPROVING -> "📈";
+            case STABLE -> "➡️";
+            case DECLINING -> "📉";
+        };
+        System.out.println("  Trend: " + trendEmoji + " " + trend);
+
+        // 4. XP History Summary
+        System.out.println("\n--- XP History Summary ---");
+        List<XpHistoryEntry> history = summary.xpHistory();
+        long habitXpEntries = history.stream().filter(e -> e.source() == XpSource.HABIT).count();
+        long goalXpEntries = history.stream().filter(e -> e.source() == XpSource.GOAL).count();
+        int totalHabitXp = history.stream()
+            .filter(e -> e.source() == XpSource.HABIT)
+            .mapToInt(XpHistoryEntry::xpChange)
+            .sum();
+        int totalGoalXp = history.stream()
+            .filter(e -> e.source() == XpSource.GOAL)
+            .mapToInt(XpHistoryEntry::xpChange)
+            .sum();
+        
+        System.out.printf("  Total XP entries: %d%n", history.size());
+        System.out.printf("  Habit XP: %d entries, %+d total XP%n", habitXpEntries, totalHabitXp);
+        System.out.printf("  Goal XP: %d entries, %+d total XP%n", goalXpEntries, totalGoalXp);
+        
+        if (!history.isEmpty()) {
+            System.out.println("  Recent entries:");
+            int recentCount = Math.min(5, history.size());
+            for (int i = history.size() - recentCount; i < history.size(); i++) {
+                XpHistoryEntry entry = history.get(i);
+                System.out.printf("    %s: %+d XP from %s%n",
+                    entry.date(), entry.xpChange(), entry.source());
+            }
+        }
+
+        // 5. Burnout Warning
+        System.out.println("\n--- Burnout Warning ---");
+        BurnoutWarning burnout = summary.burnoutWarning();
+        if (burnout.isWarningActive()) {
+            System.out.println("  ⚠️  WARNING: Potential burnout risk detected!");
+            System.out.printf("  Severity Score: %.1f/100%n", burnout.severityScore());
+            System.out.println("  Risk Factors:");
+            for (String factor : burnout.riskFactors()) {
+                System.out.println("    - " + factor);
+            }
+        } else {
+            System.out.println("  ✅ No burnout warning - keep up the good work!");
+            if (burnout.hasRiskFactors()) {
+                System.out.println("  Minor factors detected (below threshold):");
+                for (String factor : burnout.riskFactors()) {
+                    System.out.println("    - " + factor);
+                }
+            }
         }
     }
 

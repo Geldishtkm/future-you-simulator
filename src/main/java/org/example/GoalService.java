@@ -269,6 +269,17 @@ public class GoalService {
     }
 
     /**
+     * Gets all goal notes across all dates for analytics purposes.
+     *
+     * @return a list of all goal notes
+     */
+    public List<GoalNote> getAllGoalNotes() {
+        return dailyGoalNotes.values().stream()
+                .flatMap(map -> map.values().stream())
+                .toList();
+    }
+
+    /**
      * Result of adding a goal note.
      * Contains the updated user stats, the note that was created, and the XP transaction that was applied.
      *

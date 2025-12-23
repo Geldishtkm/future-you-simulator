@@ -2,6 +2,7 @@ package org.example;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -257,6 +258,27 @@ public class HabitService {
         if (lastActivityDate == null || date.isAfter(lastActivityDate)) {
             lastActivityDate = date;
         }
+    }
+
+    /**
+     * Gets all activity logs for analytics purposes.
+     * Returns a copy of the internal map.
+     *
+     * @return a map of date to activity log
+     */
+    public Map<LocalDate, DailyActivityLog> getAllActivityLogs() {
+        return new HashMap<>(activityLogs);
+    }
+
+    /**
+     * Gets all habit checks across all dates for analytics purposes.
+     *
+     * @return a list of all habit checks
+     */
+    public List<HabitCheck> getAllHabitChecks() {
+        return activityLogs.values().stream()
+                .flatMap(log -> log.getHabitChecks().stream())
+                .toList();
     }
 
     /**
