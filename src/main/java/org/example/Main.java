@@ -9,17 +9,20 @@ import java.time.LocalDate;
  * - Activity tracking
  * - Anti-cheat validation (preventing duplicate rewards)
  * - Inactivity XP decay
+ * - Long-term goals and daily goal progress
  */
 public class Main {
     public static void main(String[] args) {
-        // Initialize the habit service (handles all business logic)
+        // Initialize services
         HabitService habitService = new HabitService();
+        GoalService goalService = new GoalService();
         
         // Create a new user starting at level 1 with 0 XP
         UserStats userStats = UserStats.createNew();
         System.out.println("=== Initial State ===");
         System.out.println("Initial stats: " + userStats);
         System.out.println("Daily XP limit: " + habitService.getDailyXpLimit().getMaxXpPerDay() + " XP per day");
+        System.out.println("Daily goal XP limit: " + goalService.getDailyGoalXpLimit().getMaxXpPerGoalPerDay() + " XP per goal per day");
         System.out.println();
 
         // Create some habits with different difficulty levels
@@ -29,68 +32,130 @@ public class Main {
         Habit meditate = new Habit("Meditate", Difficulty.FOUR);
         Habit learnNewSkill = new Habit("Learn New Skill", Difficulty.FIVE);
 
+        // Create long-term goals
         LocalDate today = LocalDate.now();
+        Goal internshipGoal = new Goal(
+            "Get a Backend Internship",
+            "Land an internship at a tech company working on backend systems",
+            today,
+            today.plusMonths(6),
+            5, // High importance
+            100 // 100 points to complete
+        );
+
+        Goal fitnessGoal = new Goal(
+            "Run a Half Marathon",
+            "Complete a half marathon race",
+            today,
+            today.plusMonths(4),
+            4, // High importance
+            80 // 80 points to complete
+        );
+
+        GoalService.NoteResult noteResult;
+
+        // Add goals to the system
+        goalService.addGoal(internshipGoal);
+        goalService.addGoal(fitnessGoal);
+        System.out.println("=== Goals Created ===");
+        System.out.println("Goal 1: " + internshipGoal.getTitle() + " (Importance: " + internshipGoal.getImportance() + ")");
+        System.out.println("Goal 2: " + fitnessGoal.getTitle() + " (Importance: " + fitnessGoal.getImportance() + ")");
+        System.out.println();
+
         LocalDate day1 = today;
         LocalDate day2 = today.plusDays(1);
         LocalDate day3 = today.plusDays(2);
         LocalDate day4 = today.plusDays(3);
-        LocalDate day5 = today.plusDays(4);
-        LocalDate day6 = today.plusDays(5); // For inactivity decay demo
 
         System.out.println("=== Day 1: " + day1 + " ===");
+        // Check some habits
         userStats = checkHabit(habitService, userStats, morningExercise, day1, HabitCheckResult.DONE);
         userStats = checkHabit(habitService, userStats, drinkWater, day1, HabitCheckResult.DONE);
-        userStats = checkHabit(habitService, userStats, readBook, day1, HabitCheckResult.DONE);
+        
+        // Add goal notes
+        System.out.println("\n--- Goal Progress ---");
+        noteResult = goalService.addGoalNote(userStats, internshipGoal, day1, 
+            "Applied to 3 companies, updated resume", 8, habitService);
+        userStats = noteResult.userStats();
+        System.out.println("✓ " + internshipGoal.getTitle() + ": " + noteResult.transaction().reason() + 
+            " (XP: +" + noteResult.transaction().amount() + ")");
+        
+        noteResult = goalService.addGoalNote(userStats, fitnessGoal, day1, 
+            "Ran 5km, feeling good", 6, habitService);
+        userStats = noteResult.userStats();
+        System.out.println("✓ " + fitnessGoal.getTitle() + ": " + noteResult.transaction().reason() + 
+            " (XP: +" + noteResult.transaction().amount() + ")");
+        
         printDaySummary(habitService, userStats, day1);
+        printGoalProgress(goalService, internshipGoal, fitnessGoal);
         System.out.println();
 
         System.out.println("=== Day 2: " + day2 + " ===");
         userStats = checkHabit(habitService, userStats, morningExercise, day2, HabitCheckResult.DONE);
-        userStats = checkHabit(habitService, userStats, drinkWater, day2, HabitCheckResult.MISSED); // Penalty
-        userStats = checkHabit(habitService, userStats, meditate, day2, HabitCheckResult.DONE);
-        userStats = checkHabit(habitService, userStats, learnNewSkill, day2, HabitCheckResult.DONE);
+        userStats = checkHabit(habitService, userStats, readBook, day2, HabitCheckResult.DONE);
+        
+        System.out.println("\n--- Goal Progress ---");
+        noteResult = goalService.addGoalNote(userStats, internshipGoal, day2, 
+            "Completed coding challenge, sent follow-up email", 10, habitService);
+        userStats = noteResult.userStats();
+        System.out.println("✓ " + internshipGoal.getTitle() + ": " + noteResult.transaction().reason() + 
+            " (XP: +" + noteResult.transaction().amount() + ")");
+        
+        noteResult = goalService.addGoalNote(userStats, fitnessGoal, day2, 
+            "Rest day, did stretching", 3, habitService);
+        userStats = noteResult.userStats();
+        System.out.println("✓ " + fitnessGoal.getTitle() + ": " + noteResult.transaction().reason() + 
+            " (XP: +" + noteResult.transaction().amount() + ")");
+        
         printDaySummary(habitService, userStats, day2);
+        printGoalProgress(goalService, internshipGoal, fitnessGoal);
         System.out.println();
 
-        System.out.println("=== Day 3: " + day3 + " (Testing Daily XP Cap) ===");
-        // Complete many habits to hit the daily cap (100 XP)
-        userStats = checkHabit(habitService, userStats, morningExercise, day3, HabitCheckResult.DONE); // +30
-        userStats = checkHabit(habitService, userStats, drinkWater, day3, HabitCheckResult.DONE); // +10 (40 total)
-        userStats = checkHabit(habitService, userStats, readBook, day3, HabitCheckResult.DONE); // +20 (60 total)
-        userStats = checkHabit(habitService, userStats, meditate, day3, HabitCheckResult.DONE); // +40 (100 total - CAP REACHED)
-        userStats = checkHabit(habitService, userStats, learnNewSkill, day3, HabitCheckResult.DONE); // Would be +50, but capped at 0
-        printDaySummary(habitService, userStats, day3);
-        System.out.println();
-
-        System.out.println("=== Day 3: Anti-Cheat Test ===");
+        System.out.println("=== Day 3: " + day3 + " (Testing Goal XP Limits) ===");
+        userStats = checkHabit(habitService, userStats, meditate, day3, HabitCheckResult.DONE);
+        
+        System.out.println("\n--- Goal Progress ---");
+        // Try to add more than 10 XP to a goal (should be capped at 10)
+        noteResult = goalService.addGoalNote(userStats, internshipGoal, day3, 
+            "Had interview, it went well!", 15, habitService); // Requesting 15, but limit is 10
+        userStats = noteResult.userStats();
+        System.out.println("✓ " + internshipGoal.getTitle() + ": " + noteResult.transaction().reason() + 
+            " (XP: +" + noteResult.transaction().amount() + ")");
+        
+        // Try to add a second note for the same goal on the same day (should fail)
+        System.out.println("\n--- Anti-Cheat Test: Duplicate Goal Note ---");
         try {
-            // Try to check the same habit twice (should fail)
-            userStats = checkHabit(habitService, userStats, morningExercise, day3, HabitCheckResult.DONE);
+            noteResult = goalService.addGoalNote(userStats, internshipGoal, day3, 
+                "Another note for same goal", 5, habitService);
             System.out.println("ERROR: Should have thrown an exception!");
         } catch (IllegalStateException e) {
             System.out.println("✓ Anti-cheat validation working: " + e.getMessage());
         }
+        
+        printDaySummary(habitService, userStats, day3);
+        printGoalProgress(goalService, internshipGoal, fitnessGoal);
         System.out.println();
 
-        System.out.println("=== Day 4: " + day4 + " ===");
+        System.out.println("=== Day 4: " + day4 + " (Testing Overall Daily XP Cap Integration) ===");
+        // Add goal XP first
+        System.out.println("\n--- Goal Progress ---");
+        noteResult = goalService.addGoalNote(userStats, internshipGoal, day4, 
+            "Received positive feedback", 10, habitService);
+        userStats = noteResult.userStats();
+        System.out.println("✓ " + internshipGoal.getTitle() + ": " + noteResult.transaction().reason() + 
+            " (XP: +" + noteResult.transaction().amount() + ")");
+        
+        // Now check habits - they should respect the overall daily cap
+        System.out.println("\n--- Habits ---");
         userStats = checkHabit(habitService, userStats, morningExercise, day4, HabitCheckResult.DONE);
         userStats = checkHabit(habitService, userStats, drinkWater, day4, HabitCheckResult.DONE);
-        printDaySummary(habitService, userStats, day4);
-        System.out.println();
-
-        System.out.println("=== Day 5: " + day5 + " (No activity - preparing for decay) ===");
-        System.out.println("No habits checked today.");
-        printDaySummary(habitService, userStats, day5);
-        System.out.println();
-
-        System.out.println("=== Day 6: " + day6 + " (Testing Inactivity Decay) ===");
-        System.out.println("Last activity: " + habitService.getLastActivityDate());
-        System.out.println("Days inactive: " + java.time.temporal.ChronoUnit.DAYS.between(day4, day6));
-        System.out.println("XP before decay: " + userStats.getTotalXp());
+        userStats = checkHabit(habitService, userStats, readBook, day4, HabitCheckResult.DONE);
+        userStats = checkHabit(habitService, userStats, meditate, day4, HabitCheckResult.DONE);
+        // This should be capped because goal XP (10) + habit XP (30+10+20+40=100) = 110, but cap is 100
+        userStats = checkHabit(habitService, userStats, learnNewSkill, day4, HabitCheckResult.DONE);
         
-        // Checking a habit after inactivity will trigger decay
-        userStats = checkHabit(habitService, userStats, readBook, day6, HabitCheckResult.DONE);
-        printDaySummary(habitService, userStats, day6);
+        printDaySummary(habitService, userStats, day4);
+        printGoalProgress(goalService, internshipGoal, fitnessGoal);
         System.out.println();
 
         // Show final summary
@@ -102,6 +167,15 @@ public class Main {
         int xpNeeded = xpForNextLevel - userStats.getTotalXp();
         System.out.println("XP needed for level " + (currentLevel + 1) + ": " + xpNeeded);
         System.out.println("Last activity date: " + habitService.getLastActivityDate());
+        System.out.println();
+        
+        System.out.println("=== Goal Progress Summary ===");
+        for (Goal goal : goalService.getAllGoals()) {
+            double progress = goalService.calculateProgress(goal);
+            int accumulated = goalService.getAccumulatedPoints(goal);
+            System.out.printf("%s: %.1f%% complete (%d / %d points)%n",
+                goal.getTitle(), progress, accumulated, goal.getTotalProgressPoints());
+        }
     }
 
     /**
@@ -152,5 +226,21 @@ public class Main {
         System.out.println("XP gained today: " + log.getXpGained() + " / " + dailyLimit + " (daily cap)");
         System.out.println("Total XP: " + userStats.getTotalXp());
         System.out.println("Current level: " + userStats.getLevel());
+    }
+
+    /**
+     * Prints progress for the given goals.
+     *
+     * @param goalService the goal service
+     * @param goals the goals to show progress for
+     */
+    private static void printGoalProgress(GoalService goalService, Goal... goals) {
+        System.out.println("--- Goal Progress ---");
+        for (Goal goal : goals) {
+            double progress = goalService.calculateProgress(goal);
+            int accumulated = goalService.getAccumulatedPoints(goal);
+            System.out.printf("  %s: %.1f%% (%d / %d points)%n",
+                goal.getTitle(), progress, accumulated, goal.getTotalProgressPoints());
+        }
     }
 }

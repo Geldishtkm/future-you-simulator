@@ -231,6 +231,35 @@ public class HabitService {
     }
 
     /**
+     * Records goal XP in the daily activity log.
+     * This method is called by GoalService to ensure goal XP counts towards the daily XP cap.
+     * 
+     * @param date the date of the goal XP
+     * @param xpAmount the amount of XP from goals (must be non-negative)
+     * @throws IllegalArgumentException if date is null or xpAmount is negative
+     */
+    public void recordGoalXp(LocalDate date, int xpAmount) {
+        if (date == null) {
+            throw new IllegalArgumentException("Date cannot be null");
+        }
+        if (xpAmount < 0) {
+            throw new IllegalArgumentException("XP amount cannot be negative");
+        }
+        if (xpAmount == 0) {
+            return; // No need to record zero XP
+        }
+
+        DailyActivityLog todayLog = activityLogs.getOrDefault(date, DailyActivityLog.empty(date));
+        DailyActivityLog updatedLog = todayLog.addXp(xpAmount);
+        activityLogs.put(date, updatedLog);
+
+        // Update last activity date
+        if (lastActivityDate == null || date.isAfter(lastActivityDate)) {
+            lastActivityDate = date;
+        }
+    }
+
+    /**
      * Result of a habit check operation.
      * Contains the updated user stats, activity log, and the XP transaction that was applied.
      *

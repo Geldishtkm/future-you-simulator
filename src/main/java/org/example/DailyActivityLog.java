@@ -76,6 +76,24 @@ public class DailyActivityLog {
     }
 
     /**
+     * Adds XP directly to this log (e.g., from goals).
+     * Returns a new DailyActivityLog instance (immutable).
+     *
+     * @param xpToAdd the XP to add (must be non-negative)
+     * @return a new DailyActivityLog with updated XP
+     * @throws IllegalArgumentException if xpToAdd is negative
+     */
+    public DailyActivityLog addXp(int xpToAdd) {
+        if (xpToAdd < 0) {
+            throw new IllegalArgumentException("XP to add cannot be negative");
+        }
+        if (xpToAdd == 0) {
+            return this; // No change needed
+        }
+        return new DailyActivityLog(this.date, this.xpGained + xpToAdd, this.habitChecks);
+    }
+
+    /**
      * Checks if a specific habit has already been checked on this date.
      *
      * @param habit the habit to check
