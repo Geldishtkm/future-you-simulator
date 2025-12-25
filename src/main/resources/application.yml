@@ -22,6 +22,9 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
 
+server:
+  port: 8080
+
 # PostgreSQL configuration (commented out for development)
 # Uncomment and configure for production:
 #spring:
