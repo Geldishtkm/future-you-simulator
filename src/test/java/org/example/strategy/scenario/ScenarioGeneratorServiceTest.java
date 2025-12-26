@@ -1,7 +1,8 @@
 package org.example.strategy.scenario;
 
 import org.example.*;
-import org.example.simulation.model.SimulationInput;
+import org.example.simulation.engine.FutureSimulationService;
+import org.example.simulation.model.*;
 import org.example.strategy.Recommendation;
 import org.example.strategy.RecommendationImpact;
 import org.example.strategy.RecommendationType;
@@ -17,55 +18,79 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for ScenarioGeneratorService.
+ * Tests ensure scenarios are generated correctly and evaluated properly.
  */
 class ScenarioGeneratorServiceTest {
-    private ScenarioGeneratorService scenarioGenerator;
-    private UserStats userStats;
+    private ScenarioGeneratorService scenarioService;
+    private SimulationInput baseInput;
 
     @BeforeEach
     void setUp() {
-        scenarioGenerator = new ScenarioGeneratorService();
-        LevelCalculator levelCalculator = new LevelCalculator();
-        userStats = new UserStats(500, levelCalculator.calculateLevel(500));
+        scenarioService = new ScenarioGeneratorService();
+        
+        // Create a base input for testing
+        UserStats userStats = new UserStats(500, 5);
+        double consistencyScore = 70.0;
+        double averageDailyEffort = 80.0;
+        
+        Map<Difficulty, Integer> difficultyDistribution = new HashMap<>();
+        difficultyDistribution.put(Difficulty.ONE, 1);
+        difficultyDistribution.put(Difficulty.TWO, 2);
+        difficultyDistribution.put(Difficulty.THREE, 2);
+        difficultyDistribution.put(Difficulty.FOUR, 1);
+        difficultyDistribution.put(Difficulty.FIVE, 0);
+        
+        List<Goal> activeGoals = List.of(
+            new Goal("Test Goal", "Description", LocalDate.now(), LocalDate.now().plusMonths(6), 4, 100)
+        );
+        
+        BurnoutWarning burnoutWarning = new BurnoutWarning(false, List.of(), 0.0);
+        int activeDaysLastMonth = 25;
+        double averageStreakLength = 10.0;
+        int yearsToSimulate = 3;
+
+        baseInput = new SimulationInput(
+            userStats, consistencyScore, averageDailyEffort, difficultyDistribution,
+            activeGoals, burnoutWarning, activeDaysLastMonth, averageStreakLength, yearsToSimulate
+        );
     }
 
     @Test
-    void testGenerateBurnoutReductionScenario() {
+    void testGenerateScenarioForBurnoutReduction() {
         // Arrange
-        SimulationInput baseInput = createTestInput(80.0, 120.0, createHighDifficultyDistribution());
         Recommendation recommendation = new Recommendation(
             RecommendationType.REDUCE_BURNOUT_RISK,
-            "Reduce effort",
-            "High burnout risk",
-            "Lower burnout",
+            "Reduce effort to prevent burnout",
+            "High burnout risk detected",
+            "Lower burnout risk",
             "May slow growth",
             RecommendationImpact.HIGH,
             90.0
         );
 
         // Act
-        List<GeneratedScenario> scenarios = scenarioGenerator.generateScenarios(baseInput, List.of(recommendation));
+        List<ScenarioImpactSummary> summaries = scenarioService.generateAndEvaluateScenarios(
+            baseInput, List.of(recommendation)
+        );
 
         // Assert
-        assertNotNull(scenarios);
-        assertFalse(scenarios.isEmpty());
+        assertNotNull(summaries);
+        assertFalse(summaries.isEmpty(), "Should generate at least one scenario");
         
-        GeneratedScenario scenario = scenarios.get(0);
-        assertEquals("Burnout Risk Reduction", scenario.name());
-        assertTrue(scenario.modifiedInput().getAverageDailyEffort() < baseInput.getAverageDailyEffort(),
-            "Effort should be reduced");
-        assertFalse(scenario.modifiedInput().getBurnoutWarning().isWarningActive(),
-            "Burnout warning should be improved");
+        ScenarioImpactSummary summary = summaries.get(0);
+        assertNotNull(summary.getScenario());
+        assertEquals("Reduced Burnout Risk Scenario", summary.getScenario().getScenarioName());
+        assertTrue(summary.getScenario().getParameterChanges().containsKey("averageDailyEffort"),
+            "Should reduce daily effort");
     }
 
     @Test
-    void testGenerateConsistencyImprovementScenario() {
+    void testGenerateScenarioForConsistencyImprovement() {
         // Arrange
-        SimulationInput baseInput = createTestInput(50.0, 60.0, createMediumDifficultyDistribution());
         Recommendation recommendation = new Recommendation(
             RecommendationType.IMPROVE_CONSISTENCY,
             "Improve consistency",
-            "Low consistency",
+            "Low consistency detected",
             "Better growth",
             "None",
             RecommendationImpact.MEDIUM,
@@ -73,101 +98,60 @@ class ScenarioGeneratorServiceTest {
         );
 
         // Act
-        List<GeneratedScenario> scenarios = scenarioGenerator.generateScenarios(baseInput, List.of(recommendation));
+        List<ScenarioImpactSummary> summaries = scenarioService.generateAndEvaluateScenarios(
+            baseInput, List.of(recommendation)
+        );
 
         // Assert
-        assertNotNull(scenarios);
-        assertFalse(scenarios.isEmpty());
+        assertNotNull(summaries);
+        assertFalse(summaries.isEmpty());
         
-        GeneratedScenario scenario = scenarios.get(0);
-        assertEquals("Consistency Improvement", scenario.name());
-        assertTrue(scenario.modifiedInput().getHabitsConsistencyScore() > baseInput.getHabitsConsistencyScore(),
+        ScenarioImpactSummary summary = summaries.get(0);
+        GeneratedScenario scenario = summary.getScenario();
+        assertTrue(scenario.getParameterChanges().containsKey("habitsConsistencyScore"),
+            "Should improve consistency score");
+        
+        // Verify consistency was improved
+        double originalConsistency = baseInput.getHabitsConsistencyScore();
+        double newConsistency = scenario.getModifiedInput().getHabitsConsistencyScore();
+        assertTrue(newConsistency > originalConsistency,
             "Consistency should be improved");
-        assertTrue(scenario.modifiedInput().getActiveDaysLastMonth() > baseInput.getActiveDaysLastMonth(),
-            "Active days should increase");
     }
 
     @Test
-    void testGenerateGoalFocusScenario() {
+    void testGenerateScenarioForGoalFocus() {
         // Arrange
-        SimulationInput baseInput = createTestInput(60.0, 70.0, createMediumDifficultyDistribution());
         Recommendation recommendation = new Recommendation(
             RecommendationType.ADD_GOAL_FOCUS,
             "Add goal focus",
             "Low skill growth",
-            "Better skills",
-            "None",
+            "Better skill development",
+            "Requires commitment",
             RecommendationImpact.HIGH,
             80.0
         );
 
         // Act
-        List<GeneratedScenario> scenarios = scenarioGenerator.generateScenarios(baseInput, List.of(recommendation));
-
-        // Assert
-        assertNotNull(scenarios);
-        assertFalse(scenarios.isEmpty());
-        
-        GeneratedScenario scenario = scenarios.get(0);
-        assertEquals("Goal Focus Enhancement", scenario.name());
-        assertTrue(scenario.modifiedInput().getAverageDailyEffort() > baseInput.getAverageDailyEffort(),
-            "Effort should increase for goal focus");
-    }
-
-    @Test
-    void testGenerateMultipleScenarios() {
-        // Arrange
-        SimulationInput baseInput = createTestInput(70.0, 100.0, createHighDifficultyDistribution());
-        List<Recommendation> recommendations = List.of(
-            new Recommendation(
-                RecommendationType.REDUCE_BURNOUT_RISK,
-                "Reduce burnout",
-                "High risk",
-                "Sustainability",
-                "None",
-                RecommendationImpact.HIGH,
-                90.0
-            ),
-            new Recommendation(
-                RecommendationType.IMPROVE_CONSISTENCY,
-                "Improve consistency",
-                "Can improve",
-                "Better growth",
-                "None",
-                RecommendationImpact.MEDIUM,
-                70.0
-            )
+        List<ScenarioImpactSummary> summaries = scenarioService.generateAndEvaluateScenarios(
+            baseInput, List.of(recommendation)
         );
 
-        // Act
-        List<GeneratedScenario> scenarios = scenarioGenerator.generateScenarios(baseInput, recommendations);
-
         // Assert
-        assertNotNull(scenarios);
-        assertTrue(scenarios.size() >= 2, "Should generate multiple scenarios");
+        assertNotNull(summaries);
+        assertFalse(summaries.isEmpty());
         
-        // Should have individual scenarios
-        boolean hasBurnoutScenario = scenarios.stream()
-            .anyMatch(s -> s.name().equals("Burnout Risk Reduction"));
-        assertTrue(hasBurnoutScenario, "Should have burnout reduction scenario");
-        
-        boolean hasConsistencyScenario = scenarios.stream()
-            .anyMatch(s -> s.name().equals("Consistency Improvement"));
-        assertTrue(hasConsistencyScenario, "Should have consistency improvement scenario");
-        
-        // May also have combined scenario
-        boolean hasCombined = scenarios.stream()
-            .anyMatch(s -> s.name().equals("Combined Improvements"));
-        // Combined scenario is optional, so we just check if scenarios exist
+        ScenarioImpactSummary summary = summaries.get(0);
+        GeneratedScenario scenario = summary.getScenario();
+        assertTrue(scenario.getParameterChanges().containsKey("activeGoals"),
+            "Should indicate goal-related changes");
     }
 
     @Test
-    void testGeneratedScenarioHasAllRequiredFields() {
+    void testScenarioImpactSummaryContainsAllFields() {
         // Arrange
-        SimulationInput baseInput = createTestInput(60.0, 80.0, createMediumDifficultyDistribution());
         Recommendation recommendation = new Recommendation(
             RecommendationType.IMPROVE_CONSISTENCY,
-            "Test",
+            "Improve consistency",
             "Test reason",
             "Test benefit",
             "Test risk",
@@ -176,75 +160,148 @@ class ScenarioGeneratorServiceTest {
         );
 
         // Act
-        List<GeneratedScenario> scenarios = scenarioGenerator.generateScenarios(baseInput, List.of(recommendation));
+        List<ScenarioImpactSummary> summaries = scenarioService.generateAndEvaluateScenarios(
+            baseInput, List.of(recommendation)
+        );
 
         // Assert
-        assertFalse(scenarios.isEmpty());
-        GeneratedScenario scenario = scenarios.get(0);
+        assertFalse(summaries.isEmpty());
+        ScenarioImpactSummary summary = summaries.get(0);
         
-        assertNotNull(scenario.name());
-        assertFalse(scenario.name().isBlank());
-        assertNotNull(scenario.appliedRecommendations());
-        assertFalse(scenario.appliedRecommendations().isEmpty());
-        assertNotNull(scenario.modifiedInput());
-        assertNotNull(scenario.rationale());
-        assertFalse(scenario.rationale().isBlank());
-        assertNotNull(scenario.expectedLongTermBenefit());
-        assertFalse(scenario.expectedLongTermBenefit().isBlank());
+        assertNotNull(summary.getScenario(), "Scenario should not be null");
+        assertNotNull(summary.getBaseResult(), "Base result should not be null");
+        assertNotNull(summary.getImprovedResult(), "Improved result should not be null");
+        assertNotNull(summary.getImprovementDescription(), "Improvement description should not be null");
+        assertFalse(summary.getImprovementDescription().isBlank(),
+            "Improvement description should not be blank");
+    }
+
+    @Test
+    void testScenariosAreSortedByImprovement() {
+        // Arrange: Multiple recommendations with different priorities
+        List<Recommendation> recommendations = List.of(
+            new Recommendation(
+                RecommendationType.IMPROVE_CONSISTENCY,
+                "Improve consistency",
+                "Low consistency",
+                "Better growth",
+                "None",
+                RecommendationImpact.MEDIUM,
+                65.0
+            ),
+            new Recommendation(
+                RecommendationType.REDUCE_BURNOUT_RISK,
+                "Reduce burnout",
+                "High burnout risk",
+                "Sustainability",
+                "May slow growth",
+                RecommendationImpact.HIGH,
+                90.0
+            ),
+            new Recommendation(
+                RecommendationType.ADD_GOAL_FOCUS,
+                "Add goals",
+                "Low skill growth",
+                "Skill development",
+                "Commitment required",
+                RecommendationImpact.HIGH,
+                85.0
+            )
+        );
+
+        // Act
+        List<ScenarioImpactSummary> summaries = scenarioService.generateAndEvaluateScenarios(
+            baseInput, recommendations
+        );
+
+        // Assert: Should be sorted by XP improvement (highest first)
+        assertTrue(summaries.size() >= 2, "Should generate multiple scenarios");
+        
+        for (int i = 0; i < summaries.size() - 1; i++) {
+            double currentImprovement = summaries.get(i).getXpImprovement();
+            double nextImprovement = summaries.get(i + 1).getXpImprovement();
+            assertTrue(currentImprovement >= nextImprovement,
+                String.format("Scenarios should be sorted by improvement. " +
+                    "Position %d has %.1f%%, position %d has %.1f%%",
+                    i, currentImprovement, i + 1, nextImprovement));
+        }
+    }
+
+    @Test
+    void testScenarioRationaleIsGenerated() {
+        // Arrange
+        Recommendation recommendation = new Recommendation(
+            RecommendationType.IMPROVE_CONSISTENCY,
+            "Improve consistency",
+            "Test reason for recommendation",
+            "Expected benefit",
+            "Risk note",
+            RecommendationImpact.MEDIUM,
+            70.0
+        );
+
+        // Act
+        List<ScenarioImpactSummary> summaries = scenarioService.generateAndEvaluateScenarios(
+            baseInput, List.of(recommendation)
+        );
+
+        // Assert
+        assertFalse(summaries.isEmpty());
+        GeneratedScenario scenario = summaries.get(0).getScenario();
+        
+        assertNotNull(scenario.getRationale());
+        assertFalse(scenario.getRationale().isBlank());
+        assertTrue(scenario.getRationale().contains("Test reason"),
+            "Rationale should include recommendation reason");
     }
 
     @Test
     void testNullInputThrowsException() {
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () -> {
-            scenarioGenerator.generateScenarios(null, List.of());
-        });
+            scenarioService.generateAndEvaluateScenarios(null, List.of());
+        }, "Should throw exception for null input");
     }
 
     @Test
     void testEmptyRecommendationsThrowsException() {
-        // Arrange
-        SimulationInput baseInput = createTestInput(60.0, 80.0, createMediumDifficultyDistribution());
-
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () -> {
-            scenarioGenerator.generateScenarios(baseInput, List.of());
-        });
+            scenarioService.generateAndEvaluateScenarios(baseInput, List.of());
+        }, "Should throw exception for empty recommendations");
     }
 
-    // Helper methods
-    private SimulationInput createTestInput(double consistency, double dailyEffort, Map<Difficulty, Integer> distribution) {
-        return new SimulationInput(
-            userStats,
-            consistency,
-            dailyEffort,
-            distribution,
-            List.of(),
-            new BurnoutWarning(false, List.of(), 0.0),
-            20,
-            10.0,
-            3
+    @Test
+    void testHabitAdditionScenario() {
+        // Arrange
+        Recommendation recommendation = new Recommendation(
+            RecommendationType.ADD_HABITS_FOR_GROWTH,
+            "Add habits for growth",
+            "Low skill growth",
+            "Increased XP",
+            "More commitment needed",
+            RecommendationImpact.MEDIUM,
+            75.0
         );
-    }
 
-    private Map<Difficulty, Integer> createHighDifficultyDistribution() {
-        Map<Difficulty, Integer> dist = new HashMap<>();
-        dist.put(Difficulty.ONE, 1);
-        dist.put(Difficulty.TWO, 1);
-        dist.put(Difficulty.THREE, 1);
-        dist.put(Difficulty.FOUR, 2);
-        dist.put(Difficulty.FIVE, 1);
-        return dist;
-    }
+        // Act
+        List<ScenarioImpactSummary> summaries = scenarioService.generateAndEvaluateScenarios(
+            baseInput, List.of(recommendation)
+        );
 
-    private Map<Difficulty, Integer> createMediumDifficultyDistribution() {
-        Map<Difficulty, Integer> dist = new HashMap<>();
-        dist.put(Difficulty.ONE, 2);
-        dist.put(Difficulty.TWO, 2);
-        dist.put(Difficulty.THREE, 2);
-        dist.put(Difficulty.FOUR, 0);
-        dist.put(Difficulty.FIVE, 0);
-        return dist;
+        // Assert
+        assertFalse(summaries.isEmpty());
+        GeneratedScenario scenario = summaries.get(0).getScenario();
+        
+        // Check that a habit was added
+        assertTrue(scenario.getParameterChanges().containsKey("difficultyDistribution"),
+            "Should indicate habit addition");
+        
+        // Check that effort increased (new habit = more XP)
+        double originalEffort = baseInput.getAverageDailyEffort();
+        double newEffort = scenario.getModifiedInput().getAverageDailyEffort();
+        assertTrue(newEffort > originalEffort,
+            "Adding a habit should increase daily effort");
     }
 }
 
