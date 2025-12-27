@@ -171,6 +171,7 @@ class ScenarioGeneratorServiceTest {
         assertNotNull(summary.getScenario(), "Scenario should not be null");
         assertNotNull(summary.getBaseResult(), "Base result should not be null");
         assertNotNull(summary.getImprovedResult(), "Improved result should not be null");
+        assertNotNull(summary.getBurnoutRiskChange(), "Burnout risk change should not be null");
         assertNotNull(summary.getImprovementDescription(), "Improvement description should not be null");
         assertFalse(summary.getImprovementDescription().isBlank(),
             "Improvement description should not be blank");

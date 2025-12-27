@@ -434,9 +434,22 @@ public class ScenarioGeneratorService {
         double skillGrowthImprovement = improvedResult.getAverageSkillGrowthIndex() - 
                                        baseResult.getAverageSkillGrowthIndex();
         
+        // Calculate burnout risk change
+        ScenarioImpactSummary.BurnoutRiskChange burnoutRiskChange = calculateBurnoutRiskChange(
+            baseResult.getBurnoutRisk(), improvedResult.getBurnoutRisk());
+        
+        // Calculate income projection delta
+        int incomeProjectionDelta = improvedResult.getIncomeRange().getExpectedEstimate() - 
+                                   baseResult.getIncomeRange().getExpectedEstimate();
+        
+        // Calculate emigration probability change
+        double emigrationProbabilityChange = improvedResult.getEmigrationProbability() - 
+                                           baseResult.getEmigrationProbability();
+        
         // Generate improvement description
         String description = generateImprovementDescription(
-            baseResult, improvedResult, xpImprovement, skillGrowthImprovement);
+            baseResult, improvedResult, xpImprovement, skillGrowthImprovement,
+            burnoutRiskChange, incomeProjectionDelta, emigrationProbabilityChange);
         
         return new ScenarioImpactSummary(
             scenario,
@@ -444,8 +457,29 @@ public class ScenarioGeneratorService {
             improvedResult,
             xpImprovement,
             skillGrowthImprovement,
+            burnoutRiskChange,
+            incomeProjectionDelta,
+            emigrationProbabilityChange,
             description
         );
+    }
+
+    /**
+     * Calculates burnout risk change between base and improved results.
+     */
+    private ScenarioImpactSummary.BurnoutRiskChange calculateBurnoutRiskChange(
+            BurnoutRisk baseRisk, BurnoutRisk improvedRisk) {
+        if (baseRisk == improvedRisk) {
+            return ScenarioImpactSummary.BurnoutRiskChange.UNCHANGED;
+        }
+        
+        // Determine if risk improved (lower is better)
+        int baseOrdinal = baseRisk.ordinal(); // LOW=0, MEDIUM=1, HIGH=2
+        int improvedOrdinal = improvedRisk.ordinal();
+        
+        return improvedOrdinal < baseOrdinal ? 
+            ScenarioImpactSummary.BurnoutRiskChange.IMPROVED :
+            ScenarioImpactSummary.BurnoutRiskChange.WORSENED;
     }
 
     /**
@@ -455,7 +489,10 @@ public class ScenarioGeneratorService {
             SimulationResult baseResult,
             SimulationResult improvedResult,
             double xpImprovement,
-            double skillGrowthImprovement) {
+            double skillGrowthImprovement,
+            ScenarioImpactSummary.BurnoutRiskChange burnoutRiskChange,
+            int incomeProjectionDelta,
+            double emigrationProbabilityChange) {
         
         StringBuilder desc = new StringBuilder();
         
@@ -476,12 +513,30 @@ public class ScenarioGeneratorService {
         }
         
         // Burnout risk change
-        if (baseResult.getBurnoutRisk() == BurnoutRisk.HIGH && 
-            improvedResult.getBurnoutRisk() != BurnoutRisk.HIGH) {
-            desc.append("Burnout risk reduced significantly. ");
-        } else if (baseResult.getBurnoutRisk() == BurnoutRisk.MEDIUM && 
-                   improvedResult.getBurnoutRisk() == BurnoutRisk.LOW) {
-            desc.append("Burnout risk improved. ");
+        if (burnoutRiskChange == ScenarioImpactSummary.BurnoutRiskChange.IMPROVED) {
+            desc.append(String.format("Burnout risk improved (%s → %s). ", 
+                baseResult.getBurnoutRisk(), improvedResult.getBurnoutRisk()));
+        } else if (burnoutRiskChange == ScenarioImpactSummary.BurnoutRiskChange.WORSENED) {
+            desc.append(String.format("Burnout risk increased (%s → %s). ", 
+                baseResult.getBurnoutRisk(), improvedResult.getBurnoutRisk()));
+        }
+        
+        // Income projection change
+        if (incomeProjectionDelta > 5000) {
+            desc.append(String.format("Expected income increased by $%d/year. ", incomeProjectionDelta));
+        } else if (incomeProjectionDelta < -5000) {
+            desc.append(String.format("Expected income decreased by $%d/year. ", Math.abs(incomeProjectionDelta)));
+        }
+        
+        // Emigration probability change
+        if (Math.abs(emigrationProbabilityChange) > 5.0) {
+            if (emigrationProbabilityChange > 0) {
+                desc.append(String.format("Emigration probability increased by +%.1f%%. ", 
+                    emigrationProbabilityChange));
+            } else {
+                desc.append(String.format("Emigration probability decreased by %.1f%%. ", 
+                    Math.abs(emigrationProbabilityChange)));
+            }
         }
         
         // Level improvement
