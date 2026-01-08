@@ -1,5 +1,7 @@
 package org.example.behavior.drift;
 
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.*;
 
@@ -7,6 +9,7 @@ import java.util.*;
  * Detects meaningful behavior drift by comparing behavior snapshots over time.
  * Ignores short-term noise and focuses on statistically meaningful changes.
  */
+@Service
 public class BehaviorDriftDetector {
     private static final double MIN_CHANGE_THRESHOLD = 10.0; // Minimum 10% change to be considered meaningful
     private static final int MIN_DAYS_FOR_DRIFT = 14; // Minimum days between snapshots to detect drift

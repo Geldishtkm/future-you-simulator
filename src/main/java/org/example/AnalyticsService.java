@@ -1,5 +1,7 @@
 package org.example;
 
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import java.util.Map;
  * 
  * This service does not modify any data - it only analyzes existing data.
  */
+@Service
 public class AnalyticsService {
     private final HabitStreakCalculator streakCalculator;
     private final GoalConsistencyCalculator consistencyCalculator;

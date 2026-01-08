@@ -24,10 +24,12 @@ public class SimulationController {
     private final FutureSimulationService simulationService;
 
     @Autowired
-    public SimulationController(UserService userService) {
+    public SimulationController(UserService userService,
+                               SimulationInputBuilder inputBuilder,
+                               FutureSimulationService simulationService) {
         this.userService = userService;
-        this.inputBuilder = new SimulationInputBuilder();
-        this.simulationService = new FutureSimulationService();
+        this.inputBuilder = inputBuilder;
+        this.simulationService = simulationService;
     }
 
     /**

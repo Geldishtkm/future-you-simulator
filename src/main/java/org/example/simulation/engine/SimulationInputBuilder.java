@@ -2,6 +2,8 @@ package org.example.simulation.engine;
 
 import org.example.*;
 import org.example.simulation.model.SimulationInput;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -10,13 +12,11 @@ import java.util.stream.Collectors;
 /**
  * Builds SimulationInput from user data (HabitService, GoalService, AnalyticsService).
  */
+@Service
 public class SimulationInputBuilder {
     private final AnalyticsService analyticsService;
 
-    public SimulationInputBuilder() {
-        this(new AnalyticsService());
-    }
-
+    @Autowired
     public SimulationInputBuilder(AnalyticsService analyticsService) {
         if (analyticsService == null) {
             throw new IllegalArgumentException("AnalyticsService cannot be null");

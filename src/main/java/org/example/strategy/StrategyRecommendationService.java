@@ -1,6 +1,7 @@
 package org.example.strategy;
 
 import org.example.simulation.model.*;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -10,6 +11,7 @@ import java.util.List;
  * Service that analyzes simulation results and generates strategic recommendations.
  * Transforms predictions into actionable advice.
  */
+@Service
 public class StrategyRecommendationService {
 
     /**

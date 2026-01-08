@@ -3,6 +3,7 @@ package org.example.strategy.evaluation;
 import org.example.simulation.model.SimulationResult;
 import org.example.strategy.Recommendation;
 import org.example.strategy.scenario.ScenarioImpactSummary;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
  * Service that evaluates the effectiveness of recommendations by comparing
  * expected outcomes with actual results.
  */
+@Service
 public class RecommendationEffectivenessService {
 
     /**

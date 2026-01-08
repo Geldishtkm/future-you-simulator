@@ -3,6 +3,7 @@ package org.example.simulation.engine;
 import org.example.*;
 import org.example.simulation.explanation.SimulationExplanationGenerator;
 import org.example.simulation.model.*;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
  * Core engine for simulating a user's future trajectory.
  * Uses probabilistic modeling with weighted probabilities, diminishing returns, and consistency penalties.
  */
+@Service
 public class FutureSimulationService {
     private static final double BASE_DAYS_PER_YEAR = 365.0;
     private static final double CONSISTENCY_MULTIPLIER_MIN = 0.5; // Minimum multiplier for low consistency

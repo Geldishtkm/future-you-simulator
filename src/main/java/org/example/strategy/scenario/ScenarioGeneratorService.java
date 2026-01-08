@@ -5,6 +5,8 @@ import org.example.simulation.engine.FutureSimulationService;
 import org.example.simulation.model.*;
 import org.example.strategy.Recommendation;
 import org.example.strategy.RecommendationType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 
@@ -12,13 +14,11 @@ import java.util.*;
  * Service that generates improved simulation scenarios based on recommendations.
  * Converts strategic advice into concrete, testable scenarios.
  */
+@Service
 public class ScenarioGeneratorService {
     private final FutureSimulationService simulationService;
 
-    public ScenarioGeneratorService() {
-        this(new FutureSimulationService());
-    }
-
+    @Autowired
     public ScenarioGeneratorService(FutureSimulationService simulationService) {
         if (simulationService == null) {
             throw new IllegalArgumentException("FutureSimulationService cannot be null");
