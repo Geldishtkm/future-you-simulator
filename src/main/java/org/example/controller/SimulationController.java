@@ -50,6 +50,9 @@ public class SimulationController {
             throw new IllegalArgumentException("Years to simulate must be between 1 and 5");
         }
 
+        // Validate user exists
+        userService.getUser(userId);
+
         // Get user data
         UserStats userStats = userService.getUserStats(userId);
         HabitService habitService = userService.getHabitService(userId);
