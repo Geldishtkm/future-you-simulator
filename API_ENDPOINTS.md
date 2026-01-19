@@ -105,6 +105,85 @@ Response: 200 OK
 }
 ```
 
+## Simulation Endpoints
+
+### Run Future Simulation
+```
+POST /users/{userId}/simulation
+Content-Type: application/json
+
+{
+  "yearsToSimulate": 3
+}
+
+Response: 200 OK
+{
+  "yearlyProjections": [
+    {
+      "year": 1,
+      "projectedXp": 5000,
+      "projectedLevel": 5,
+      "skillGrowthIndex": 1.2,
+      "xpGrowthRate": 0.15
+    }
+  ],
+  "averageSkillGrowthIndex": 1.15,
+  "burnoutRisk": "MEDIUM",
+  "incomeRange": {
+    "lowEstimate": 45000,
+    "expectedEstimate": 55000,
+    "highEstimate": 65000
+  },
+  "emigrationProbability": 0.25,
+  "explanation": "Based on your current habits and goals..."
+}
+```
+
+## Strategy Endpoints
+
+### Get Recommendations
+```
+GET /users/{userId}/strategy/recommendations?years=3
+
+Response: 200 OK
+[
+  {
+    "type": "REDUCE_BURNOUT_RISK",
+    "description": "Reduce daily effort to avoid burnout",
+    "reason": "Your burnout risk is HIGH due to excessive daily effort",
+    "expectedBenefit": "Lower burnout risk, improved long-term consistency",
+    "riskNote": "May temporarily reduce XP gains",
+    "impact": "HIGH",
+    "priorityScore": 9.5
+  }
+]
+```
+
+### Generate Improved Scenarios
+```
+POST /users/{userId}/strategy/scenarios?years=3
+
+Response: 200 OK
+[
+  {
+    "scenarioName": "Improved Consistency Scenario",
+    "rationale": "Applied recommendations to improve consistency",
+    "parameterChanges": {
+      "dailyEffort": "7.0 -> 6.5",
+      "missedActionsPerMonth": "5 -> 3"
+    },
+    "xpImprovement": 1250.0,
+    "skillGrowthImprovement": 0.15,
+    "burnoutRiskChange": "HIGH -> MEDIUM",
+    "incomeProjectionDelta": 5000,
+    "emigrationProbabilityChange": -0.05,
+    "improvementDescription": "This scenario shows...",
+    "baseResult": { ... },
+    "improvedResult": { ... }
+  }
+]
+```
+
 ## Goal Endpoints
 
 ### Create Goal
