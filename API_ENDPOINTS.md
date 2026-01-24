@@ -247,6 +247,85 @@ Response: 200 OK
 }
 ```
 
+## Analytics Endpoints
+
+### Get Dashboard
+```
+GET /api/users/{userId}/analytics/dashboard
+
+Response: 200 OK
+{
+  "totalXp": 5000,
+  "level": 5,
+  "totalHabits": 5,
+  "activeHabits": 5,
+  "totalGoals": 3,
+  "activeGoals": 3,
+  "consistencyScore": 0.85,
+  "currentStreaks": 15,
+  "longestStreak": 30,
+  "activeDaysLastWeek": 6,
+  "trendDirection": "IMPROVING",
+  "trendStrength": "LOW",
+  "burnoutRisk": "LOW",
+  "burnoutMessage": "No burnout indicators detected",
+  "topStreaks": [
+    {
+      "habitName": "Morning Exercise",
+      "currentStreak": 10,
+      "longestStreak": 15,
+      "lastActivityDate": "2025-01-15"
+    }
+  ],
+  "recentActivity": [
+    {
+      "date": "2025-01-15",
+      "xpChange": 50,
+      "source": "HABIT"
+    }
+  ]
+}
+```
+
+### Get Detailed Analytics
+```
+GET /api/users/{userId}/analytics/detailed
+
+Response: 200 OK
+{
+  "consistencyScore": 0.85,
+  "habitStreaks": [
+    {
+      "habitName": "Morning Exercise",
+      "currentStreak": 10,
+      "longestStreak": 15,
+      "lastActivityDate": "2025-01-15"
+    }
+  ],
+  "trends": [
+    {
+      "startDate": "2025-01-01",
+      "endDate": "2025-01-15",
+      "direction": "IMPROVING",
+      "strength": "LOW",
+      "description": "XP trend over last 14 days: IMPROVING"
+    }
+  ],
+  "burnoutWarning": {
+    "severity": "LOW",
+    "message": "No burnout indicators detected",
+    "indicators": []
+  },
+  "xpHistory": [
+    {
+      "date": "2025-01-15",
+      "xpChange": 50,
+      "source": "HABIT"
+    }
+  ]
+}
+```
+
 ## Error Responses
 
 All errors follow this format:
