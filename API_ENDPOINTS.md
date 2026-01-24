@@ -326,6 +326,30 @@ Response: 200 OK
 }
 ```
 
+### Get Health Score
+```
+GET /api/users/{userId}/analytics/health-score
+
+Response: 200 OK
+{
+  "overallScore": 78.5,
+  "consistencyScore": 85.0,
+  "streakScore": 70.0,
+  "trendScore": 90.0,
+  "burnoutScore": 25.0,
+  "healthLevel": "GOOD",
+  "strengths": [
+    "Strong consistency in maintaining habits and goals",
+    "Positive momentum in activity",
+    "Low burnout risk - sustainable pace"
+  ],
+  "areasForImprovement": [
+    "Build longer streaks - target 30+ days"
+  ],
+  "recommendation": "You're on a good track! Focus on consistency to reach the next level."
+}
+```
+
 ## Error Responses
 
 All errors follow this format:
