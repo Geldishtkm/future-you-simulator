@@ -350,6 +350,78 @@ Response: 200 OK
 }
 ```
 
+## Planning Endpoints
+
+### Get Five-Year Plan
+```
+GET /api/users/{userId}/plan/five-year?years=5
+
+Response: 200 OK
+{
+  "currentStatus": {
+    "totalXp": 5000,
+    "level": 5,
+    "totalHabits": 5,
+    "activeHabits": 5,
+    "totalGoals": 3,
+    "activeGoals": 3,
+    "consistencyScore": 0.85,
+    "currentStreaks": 15,
+    "longestStreak": 30,
+    "activeDaysLastWeek": 6,
+    "trendDirection": "IMPROVING",
+    "trendStrength": "LOW",
+    "burnoutRisk": "LOW",
+    "burnoutMessage": "No burnout indicators detected",
+    "topStreaks": [...],
+    "recentActivity": [...]
+  },
+  "healthScore": {
+    "overallScore": 78.5,
+    "consistencyScore": 85.0,
+    "streakScore": 70.0,
+    "trendScore": 90.0,
+    "burnoutScore": 25.0,
+    "healthLevel": "GOOD",
+    "strengths": [...],
+    "areasForImprovement": [...],
+    "recommendation": "..."
+  },
+  "baseSimulation": {
+    "yearlyProjections": [...],
+    "averageSkillGrowthIndex": 1.15,
+    "burnoutRisk": "MEDIUM",
+    "incomeRange": {...},
+    "emigrationProbability": 0.25,
+    "explanation": "..."
+  },
+  "topRecommendations": [
+    {
+      "type": "REDUCE_BURNOUT_RISK",
+      "description": "Reduce daily effort intensity",
+      "priorityScore": 9.5,
+      ...
+    }
+  ],
+  "bestScenarios": [
+    {
+      "scenarioName": "Improved Consistency Scenario",
+      "xpImprovement": 1250.0,
+      "skillGrowthImprovement": 0.15,
+      ...
+    }
+  ],
+  "summary": "Current Status: Level 5 with 5000 XP. Health Score: 78.5 (GOOD)...",
+  "actionPlan": "Action Plan:\n\nPriority Actions:\n1. Reduce daily effort intensity\n...",
+  "keyMilestones": [
+    "Year 1: Reach Level 6 with 7500 XP (Skill Growth: 115.0%)",
+    "Year 2: Reach Level 8 with 12000 XP (Skill Growth: 110.0%)",
+    ...
+  ],
+  "projectedImprovement": 1250.0
+}
+```
+
 ## Error Responses
 
 All errors follow this format:

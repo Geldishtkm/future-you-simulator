@@ -118,10 +118,12 @@ public class StrategyController {
         return ResponseEntity.ok(dtos);
     }
 
+
     /**
      * Converts Recommendation to DTO.
+     * Made package-private for use by PlanController.
      */
-    private RecommendationDto toRecommendationDto(Recommendation recommendation) {
+    RecommendationDto toRecommendationDto(Recommendation recommendation) {
         RecommendationDto dto = new RecommendationDto();
         dto.setType(recommendation.type().name());
         dto.setDescription(recommendation.description());
@@ -135,8 +137,9 @@ public class StrategyController {
 
     /**
      * Converts ScenarioImpactSummary to DTO.
+     * Made package-private for use by PlanController.
      */
-    private ScenarioImpactSummaryDto toScenarioImpactSummaryDto(ScenarioImpactSummary summary) {
+    ScenarioImpactSummaryDto toScenarioImpactSummaryDto(ScenarioImpactSummary summary) {
         ScenarioImpactSummaryDto dto = new ScenarioImpactSummaryDto();
         
         // Scenario info
@@ -161,8 +164,9 @@ public class StrategyController {
 
     /**
      * Converts SimulationResult to DTO.
+     * Made package-private for use by PlanController.
      */
-    private SimulationResultDto toSimulationResultDto(SimulationResult result) {
+    SimulationResultDto toSimulationResultDto(SimulationResult result) {
         SimulationResultDto dto = new SimulationResultDto();
         dto.setYearlyProjections(result.getYearlyProjections().stream()
             .map(p -> new YearlyProjectionDto(
