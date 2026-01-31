@@ -26,6 +26,7 @@ public class UserService {
     // In-memory storage for user services (in production, this would be managed differently)
     private final Map<Long, HabitService> habitServices = new HashMap<>();
     private final Map<Long, GoalService> goalServices = new HashMap<>();
+    private final Map<Long, UserPreferences> userPreferences = new HashMap<>();
 
     @Autowired
     public UserService(UserRepository userRepository, UserStatsRepository userStatsRepository) {
@@ -58,6 +59,7 @@ public class UserService {
         // Initialize services for this user
         habitServices.put(user.getId(), new HabitService());
         goalServices.put(user.getId(), new GoalService());
+        userPreferences.put(user.getId(), new UserPreferences());
 
         return user;
     }
@@ -106,6 +108,21 @@ public class UserService {
      */
     public GoalService getGoalService(Long userId) {
         return goalServices.computeIfAbsent(userId, k -> new GoalService());
+    }
+
+    /**
+     * Gets user preferences.
+     */
+    public UserPreferences getUserPreferences(Long userId) {
+        return userPreferences.computeIfAbsent(userId, k -> new UserPreferences());
+    }
+
+    /**
+     * Updates user preferences.
+     */
+    public void updateUserPreferences(Long userId, UserPreferences preferences) {
+        getUser(userId); // Validate user exists
+        userPreferences.put(userId, preferences);
     }
 }
 
