@@ -23,6 +23,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     
+    // JSON processing (Jackson is included in spring-boot-starter-web, but explicit for clarity)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    
     // Database
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
