@@ -32,10 +32,12 @@ public class HabitRecommendationController {
     /**
      * Get habit recommendations for a user.
      *
-     * GET /api/users/{userId}/recommendations/habits
+     * GET /api/users/{userId}/recommendations/habits?limit=10
      */
     @GetMapping
-    public ResponseEntity<List<HabitRecommendationDto>> getRecommendations(@PathVariable Long userId) {
+    public ResponseEntity<List<HabitRecommendationDto>> getRecommendations(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "10") int limit) {
         // Validate user exists
         userService.getUser(userId);
 
@@ -57,6 +59,10 @@ public class HabitRecommendationController {
         LocalDate currentDate = LocalDate.now();
         List<HabitRecommendation> recommendations = recommendationService.getRecommendations(
             userStats, habits, goals, habitService, goalService, analyticsService, currentDate);
+
+        if (limit > 0 && recommendations.size() > limit) {
+            recommendations = recommendations.subList(0, limit);
+        }
 
         // Convert to DTOs
         List<HabitRecommendationDto> dtos = recommendations.stream()

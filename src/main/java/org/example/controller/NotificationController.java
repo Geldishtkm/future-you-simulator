@@ -32,10 +32,13 @@ public class NotificationController {
     /**
      * Get all notifications for a user.
      *
-     * GET /api/users/{userId}/notifications
+     * GET /api/users/{userId}/notifications?page=0&size=50
      */
     @GetMapping
-    public ResponseEntity<List<NotificationDto>> getNotifications(@PathVariable Long userId) {
+    public ResponseEntity<List<NotificationDto>> getNotifications(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
         // Validate user exists
         userService.getUser(userId);
 
@@ -59,8 +62,15 @@ public class NotificationController {
         List<Notification> notifications = notificationService.generateNotifications(
             userStats, habits, goals, habitService, goalService, analyticsService, preferences, currentDate);
 
+        // Apply simple pagination
+        int fromIndex = Math.max(0, page * size);
+        int toIndex = Math.min(notifications.size(), fromIndex + size);
+        List<Notification> paged = fromIndex >= notifications.size()
+            ? List.of()
+            : notifications.subList(fromIndex, toIndex);
+
         // Convert to DTOs
-        List<NotificationDto> notificationDtos = notifications.stream()
+        List<NotificationDto> notificationDtos = paged.stream()
             .map(this::toNotificationDto)
             .collect(Collectors.toList());
 

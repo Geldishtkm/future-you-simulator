@@ -38,10 +38,13 @@ public class ExportController {
     /**
      * Export user data as JSON.
      *
-     * GET /api/users/{userId}/export/json
+     * GET /api/users/{userId}/export/json?from=2025-01-01&to=2025-01-31
      */
     @GetMapping("/json")
-    public ResponseEntity<ExportDataDto> exportJson(@PathVariable Long userId) {
+    public ResponseEntity<ExportDataDto> exportJson(
+            @PathVariable Long userId,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to) {
         // Validate user exists
         userService.getUser(userId);
 
@@ -59,6 +62,8 @@ public class ExportController {
         // Get goals
         List<Goal> goals = goalService.getAllGoals();
 
+        // TODO: In a future version, use from/to to filter checks and notes before export.
+        // For now, we ignore date filtering and export full history.
         // Export data
         String jsonData = exportService.exportToJson(
             userStats, habits, goals, habitService, goalService,
@@ -78,10 +83,13 @@ public class ExportController {
     /**
      * Export user data as CSV.
      *
-     * GET /api/users/{userId}/export/csv
+     * GET /api/users/{userId}/export/csv?from=2025-01-01&to=2025-01-31
      */
     @GetMapping("/csv")
-    public ResponseEntity<String> exportCsv(@PathVariable Long userId) {
+    public ResponseEntity<String> exportCsv(
+            @PathVariable Long userId,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to) {
         // Validate user exists
         userService.getUser(userId);
 
@@ -99,6 +107,8 @@ public class ExportController {
         // Get goals
         List<Goal> goals = goalService.getAllGoals();
 
+        // TODO: In a future version, use from/to to filter checks and notes before export.
+        // For now, we ignore date filtering and export full history.
         // Export data
         String csvData = exportService.exportToCsv(userStats, habits, goals, habitService, goalService);
 

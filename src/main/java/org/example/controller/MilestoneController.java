@@ -32,10 +32,13 @@ public class MilestoneController {
     /**
      * Get all milestones for a user.
      *
-     * GET /api/users/{userId}/milestones
+     * GET /api/users/{userId}/milestones?page=0&size=50
      */
     @GetMapping
-    public ResponseEntity<List<MilestoneDto>> getMilestones(@PathVariable Long userId) {
+    public ResponseEntity<List<MilestoneDto>> getMilestones(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
         // Validate user exists
         userService.getUser(userId);
 
@@ -58,8 +61,15 @@ public class MilestoneController {
         List<Milestone> milestones = milestoneService.getMilestones(
             userStats, habits, goals, habitService, goalService, analyticsService, currentDate);
 
+        // Apply simple pagination
+        int fromIndex = Math.max(0, page * size);
+        int toIndex = Math.min(milestones.size(), fromIndex + size);
+        List<Milestone> paged = fromIndex >= milestones.size()
+            ? List.of()
+            : milestones.subList(fromIndex, toIndex);
+
         // Convert to DTOs
-        List<MilestoneDto> milestoneDtos = milestones.stream()
+        List<MilestoneDto> milestoneDtos = paged.stream()
             .map(this::toMilestoneDto)
             .collect(Collectors.toList());
 
