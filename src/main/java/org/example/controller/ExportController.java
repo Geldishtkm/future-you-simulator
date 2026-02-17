@@ -45,6 +45,11 @@ public class ExportController {
             @PathVariable Long userId,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to) {
+        // Validate date range if both are provided
+        if (from != null && to != null && from.isAfter(to)) {
+            return ResponseEntity.badRequest().build();
+        }
+
         // Validate user exists
         userService.getUser(userId);
 
@@ -62,12 +67,13 @@ public class ExportController {
         // Get goals
         List<Goal> goals = goalService.getAllGoals();
 
-        // TODO: In a future version, use from/to to filter checks and notes before export.
-        // For now, we ignore date filtering and export full history.
-        // Export data
+        // Export data (filtered by date range if provided)
         String jsonData = exportService.exportToJson(
             userStats, habits, goals, habitService, goalService,
-            achievementService, milestoneService, analyticsService);
+            achievementService, milestoneService, analyticsService,
+            from, to);
+
+        String filename = buildFilename("user-data", "json", from, to);
 
         ExportDataDto dto = new ExportDataDto();
         dto.setExportDate(LocalDate.now());
@@ -75,7 +81,7 @@ public class ExportController {
         dto.setData(jsonData);
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=user-data.json")
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
             .contentType(MediaType.APPLICATION_JSON)
             .body(dto);
     }
@@ -90,6 +96,12 @@ public class ExportController {
             @PathVariable Long userId,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to) {
+        // Validate date range if both are provided
+        if (from != null && to != null && from.isAfter(to)) {
+            return ResponseEntity.badRequest()
+                .body("Invalid date range: 'from' must be on or before 'to'.");
+        }
+
         // Validate user exists
         userService.getUser(userId);
 
@@ -107,15 +119,29 @@ public class ExportController {
         // Get goals
         List<Goal> goals = goalService.getAllGoals();
 
-        // TODO: In a future version, use from/to to filter checks and notes before export.
-        // For now, we ignore date filtering and export full history.
-        // Export data
-        String csvData = exportService.exportToCsv(userStats, habits, goals, habitService, goalService);
+        // Export data (filtered by date range if provided)
+        String csvData = exportService.exportToCsv(userStats, habits, goals, habitService, goalService, from, to);
+
+        String filename = buildFilename("user-data", "csv", from, to);
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=user-data.csv")
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
             .contentType(MediaType.TEXT_PLAIN)
             .body(csvData);
+    }
+
+    private String buildFilename(String baseName, String extension, LocalDate from, LocalDate to) {
+        StringBuilder sb = new StringBuilder(baseName);
+        if (from != null || to != null) {
+            if (from != null) {
+                sb.append("-from-").append(from);
+            }
+            if (to != null) {
+                sb.append("-to-").append(to);
+            }
+        }
+        sb.append(".").append(extension);
+        return sb.toString();
     }
 }
 

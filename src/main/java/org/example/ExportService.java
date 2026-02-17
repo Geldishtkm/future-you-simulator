@@ -14,7 +14,10 @@ public class ExportService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Exports all user data to JSON format.
+     * Exports user data to JSON format.
+     * If {@code from} and/or {@code to} are provided, habit checks and goal notes
+     * are filtered to the given date range (inclusive). Other data (habits, goals,
+     * stats, achievements, milestones) are exported in full.
      */
     public String exportToJson(UserStats userStats,
                                List<Habit> habits,
@@ -23,10 +26,16 @@ public class ExportService {
                                GoalService goalService,
                                AchievementService achievementService,
                                MilestoneService milestoneService,
-                               AnalyticsService analyticsService) {
+                               AnalyticsService analyticsService,
+                               LocalDate from,
+                               LocalDate to) {
         try {
-            List<HabitCheck> habitChecks = habitService.getAllHabitChecks();
-            List<GoalNote> goalNotes = goalService.getAllGoalNotes();
+            List<HabitCheck> habitChecks = habitService.getAllHabitChecks().stream()
+                .filter(check -> isWithinRange(check.date(), from, to))
+                .toList();
+            List<GoalNote> goalNotes = goalService.getAllGoalNotes().stream()
+                .filter(note -> isWithinRange(note.date(), from, to))
+                .toList();
             
             LocalDate currentDate = LocalDate.now();
             List<Achievement> achievements = achievementService.calculateAchievements(
@@ -53,12 +62,16 @@ public class ExportService {
 
     /**
      * Exports user data to CSV format.
+     * If {@code from} and/or {@code to} are provided, habit checks and goal notes
+     * are filtered to the given date range (inclusive).
      */
     public String exportToCsv(UserStats userStats,
                               List<Habit> habits,
                               List<Goal> goals,
                               HabitService habitService,
-                              GoalService goalService) {
+                              GoalService goalService,
+                              LocalDate from,
+                              LocalDate to) {
         StringBuilder csv = new StringBuilder();
         
         // Header
@@ -77,7 +90,9 @@ public class ExportService {
         }
         
         // Habit checks
-        for (HabitCheck check : habitService.getAllHabitChecks()) {
+        for (HabitCheck check : habitService.getAllHabitChecks().stream()
+                .filter(check -> isWithinRange(check.date(), from, to))
+                .toList()) {
             csv.append(String.format("HABIT_CHECK,%s,%s,%s,%s\n",
                 check.habit().getName(),
                 check.date(),
@@ -92,12 +107,32 @@ public class ExportService {
         }
         
         // Goal notes
-        for (GoalNote note : goalService.getAllGoalNotes()) {
+        for (GoalNote note : goalService.getAllGoalNotes().stream()
+                .filter(note -> isWithinRange(note.date(), from, to))
+                .toList()) {
             csv.append(String.format("GOAL_NOTE,Progress,%s,%d,%s\n",
                 note.date(), note.points(), note.textNote()));
         }
         
         return csv.toString();
+    }
+
+    /**
+     * Returns true if the given {@code date} is within the optional {@code from}/{@code to}
+     * range (inclusive). A null {@code from} means "no lower bound"; a null {@code to}
+     * means "no upper bound".
+     */
+    private boolean isWithinRange(LocalDate date, LocalDate from, LocalDate to) {
+        if (date == null) {
+            return false;
+        }
+        if (from != null && date.isBefore(from)) {
+            return false;
+        }
+        if (to != null && date.isAfter(to)) {
+            return false;
+        }
+        return true;
     }
 }
 
