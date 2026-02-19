@@ -3,6 +3,8 @@ package org.example.controller;
 import org.example.*;
 import org.example.dto.ExportDataDto;
 import org.example.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,6 +20,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users/{userId}/export")
 public class ExportController {
+    private static final Logger logger = LoggerFactory.getLogger(ExportController.class);
+    private static final int MAX_DATE_RANGE_DAYS = 365; // Maximum 1 year range
+    
     private final UserService userService;
     private final ExportService exportService;
     private final AchievementService achievementService;
@@ -45,10 +50,10 @@ public class ExportController {
             @PathVariable Long userId,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to) {
-        // Validate date range if both are provided
-        if (from != null && to != null && from.isAfter(to)) {
-            return ResponseEntity.badRequest().build();
-        }
+        logger.info("Export JSON requested for user {} with date range: {} to {}", userId, from, to);
+        
+        // Validate date range
+        validateDateRange(from, to);
 
         // Validate user exists
         userService.getUser(userId);
@@ -74,6 +79,9 @@ public class ExportController {
             from, to);
 
         String filename = buildFilename("user-data", "json", from, to);
+        
+        logger.info("Successfully exported JSON data for user {}: {} habits, {} goals", 
+            userId, habits.size(), goals.size());
 
         ExportDataDto dto = new ExportDataDto();
         dto.setExportDate(LocalDate.now());
@@ -96,11 +104,10 @@ public class ExportController {
             @PathVariable Long userId,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to) {
-        // Validate date range if both are provided
-        if (from != null && to != null && from.isAfter(to)) {
-            return ResponseEntity.badRequest()
-                .body("Invalid date range: 'from' must be on or before 'to'.");
-        }
+        logger.info("Export CSV requested for user {} with date range: {} to {}", userId, from, to);
+        
+        // Validate date range
+        validateDateRange(from, to);
 
         // Validate user exists
         userService.getUser(userId);
@@ -123,6 +130,9 @@ public class ExportController {
         String csvData = exportService.exportToCsv(userStats, habits, goals, habitService, goalService, from, to);
 
         String filename = buildFilename("user-data", "csv", from, to);
+        
+        logger.info("Successfully exported CSV data for user {}: {} habits, {} goals", 
+            userId, habits.size(), goals.size());
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
@@ -130,6 +140,54 @@ public class ExportController {
             .body(csvData);
     }
 
+    /**
+     * Validates the date range parameters.
+     * 
+     * @param from the start date (optional)
+     * @param to the end date (optional)
+     * @throws IllegalArgumentException if the date range is invalid
+     */
+    private void validateDateRange(LocalDate from, LocalDate to) {
+        LocalDate today = LocalDate.now();
+        
+        // Check if from date is after to date
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new IllegalArgumentException(
+                String.format("Invalid date range: 'from' date (%s) must be on or before 'to' date (%s)", 
+                    from, to));
+        }
+        
+        // Check if dates are in the future
+        if (from != null && from.isAfter(today)) {
+            throw new IllegalArgumentException(
+                String.format("Invalid date: 'from' date (%s) cannot be in the future", from));
+        }
+        
+        if (to != null && to.isAfter(today)) {
+            throw new IllegalArgumentException(
+                String.format("Invalid date: 'to' date (%s) cannot be in the future", to));
+        }
+        
+        // Check if date range is too large
+        if (from != null && to != null) {
+            long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(from, to);
+            if (daysBetween > MAX_DATE_RANGE_DAYS) {
+                throw new IllegalArgumentException(
+                    String.format("Date range too large: maximum %d days allowed, requested %d days", 
+                        MAX_DATE_RANGE_DAYS, daysBetween));
+            }
+        }
+    }
+
+    /**
+     * Builds a filename for the export based on the date range.
+     * 
+     * @param baseName the base name for the file
+     * @param extension the file extension (without dot)
+     * @param from the start date (optional)
+     * @param to the end date (optional)
+     * @return the constructed filename
+     */
     private String buildFilename(String baseName, String extension, LocalDate from, LocalDate to) {
         StringBuilder sb = new StringBuilder(baseName);
         if (from != null || to != null) {
